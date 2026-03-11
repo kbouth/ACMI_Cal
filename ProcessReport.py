@@ -23,7 +23,7 @@ Assistant = 'Kato Bouthsarath'
 ScopeMAN = 'Tektronix'
 ScopeMOD = 'MSO64B'
 ScopeSN =  'B027138'
-ScopeCAL = '12/30/2025'
+ScopeCAL = '12/29/2026'
 
 PulserMAN = 'HP'
 PulserMOD = '8114A'

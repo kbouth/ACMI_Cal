@@ -6,25 +6,29 @@ import serial
 from time import sleep
 import pyvisa as visa
 import socket
+import telnetlib3 as tn
 
 props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
 
 plt.ion()
-# Setup for Prologix USB-Ethernet converter for the HP8114A
-PORT = "COM4"      # Windows example (e.g., COM3)
+# # Setup for Prologix USB-Ethernet converter for the HP8114A
+# PORT = "COM4"      # Windows example (e.g., COM3)
 
-ser = serial.Serial(
-    port=PORT,
-    baudrate=115200,   # Value doesn't really matter for Prologix USB
-    timeout=1
-)
-sleep(0.5)  # Give the port time to settle
+# ser = serial.Serial(
+#     port=PORT,
+#     baudrate=115200,   # Value doesn't really matter for Prologix USB
+#     timeout=1
+# )
+# sleep(0.5)  # Give the port time to settle
+
+tnet = tn.Telnet('10.0.142.150','1234')
 
 def HPwrite(cmd):
-    ser.write((cmd + "\n").encode("ascii"))
+    tnet.write((cmd + "\n").encode("ascii"))
+    sleep(0.1)
 
 def HPread():
-    return ser.readline().decode("ascii").strip()
+    return tnet.read_until(b'\n',7)
 
 # Put Prologix in controller mode and set GPIB address
 HPwrite("++mode 1")      # Controller mode
