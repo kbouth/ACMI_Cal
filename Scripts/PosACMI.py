@@ -11,8 +11,7 @@ import telnetlib3 as tn
 props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
 
 plt.ion()
-
-# Setup for Prologix USB-Ethernet converter for the HP8114A
+# # Setup for Prologix USB-Ethernet converter for the HP8114A
 # PORT = "COM4"      # Windows example (e.g., COM3)
 
 # ser = serial.Serial(
@@ -22,7 +21,7 @@ plt.ion()
 # )
 # sleep(0.5)  # Give the port time to settle
 
-tnet = tn.Telnet('10.0.142.150','1234')
+tnet = tn.Telnet('10.0.128.150','1234')
 
 def HPwrite(cmd):
     tnet.write((cmd + "\n").encode("ascii"))
@@ -46,7 +45,7 @@ else:
     print('HP8114A Pusle Generator FOUND.')   
     HPwrite(':SOUR:VOLT 0.0')
     sleep(0.5)
-    HPwrite(':OUTP:POL POS')
+    HPwrite(':OUTP:POL NEG')
     sleep(0.5)
     HPwrite(':SOUR:PULS:DEL 5US')
     sleep(0.5)
@@ -58,6 +57,7 @@ else:
 rm = visa.ResourceManager()
 scope = rm.open_resource('TCPIP0::10.0.128.110::inst0::INSTR')
 response = scope.query('*IDN?')
+print(response)
 serial_number = int(response[18:24])
 if(serial_number != 13046):
     print('Tektronix MSO64B Scope NOT FOUND...exiting!')
@@ -66,19 +66,20 @@ else:
     print('Tektronix MSO64B Scope FOUND.')
     
 #Set up the scope:
-scope.write('HOR:RECO 5000')
+scope.write('HOR:RECO 2000')
 scope.write('TRIGGER:A:MODE NORM')
 scope.write('TRIGGER:A:TYPE EDGE')
 scope.write('TRIGGER:A:EDGE:SOURCE CH1')
-scope.write('TRIGGER:A:EDGE:SLOPE RISE')
+scope.write('TRIGGER:A:EDGE:SLOPE FALL')
 scope.write('TRIGGER:A:EDGE:COUPLING DC')
 scope.write('HORIZONTAL:MODE MANUAL')
-scope.write('HORIZONTAL:MODE:SAMPLERATE 25.0E9')
-scope.write('HORIZONTAL:SCALE 4e-8')
+scope.write('HORIZONTAL:MODE:SAMPLERATE 3.125E9')
+scope.write('HORIZONTAL:SCALE 3.2e-8')
 scope.write('HORIZONTAL:POS 10')
 scope.write('*WAI')
-scope.write('CH1:SCALE 0.200')
-scope.write('CH1:POS -4.5')
+scope.write('CH1:SCALE 0.2')
+scope.write('CH1:POS 4.5')
+
     
 with PLC() as comm:
     comm.IPAddress = '10.0.128.47'
@@ -113,6 +114,8 @@ ACMIquad = float(Quad1)/float(Quad2)
 ACMIlin = float(Lin1)/float(Lin2)
 
 print(ACMIquad,ACMIlin,ACMIoff)
+
+
 #############################################################################################
 # Part One: HP8114A Pulser connected directly to the scope.  Measurement of the charge for
 # each of 24 different pulse amplitudes from 1V to 24V in 1V steps.  The pulse width is fixed
@@ -125,6 +128,21 @@ fq,axq = plt.subplots(1,2,figsize=(12,6))
 
 CH1scale=[0.2,0.5,0.5,0.5,1,1,1,1,1,2,2,2,2,2,2,2,2,2,5,5,5,5,5] #in Volts/Division on Scope
 Vp = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23] #in Volts for Pulse Amplitude
+
+#Set up the scope:
+scope.write('HOR:RECO 5000')
+scope.write('TRIGGER:A:MODE NORM')
+scope.write('TRIGGER:A:TYPE EDGE')
+scope.write('TRIGGER:A:EDGE:SOURCE CH1')
+scope.write('TRIGGER:A:EDGE:SLOPE FALL')
+scope.write('TRIGGER:A:EDGE:COUPLING DC')
+scope.write('HORIZONTAL:MODE MANUAL')
+scope.write('HORIZONTAL:MODE:SAMPLERATE 25.0E9')
+scope.write('HORIZONTAL:SCALE 4e-8')
+scope.write('HORIZONTAL:POS 10')
+scope.write('*WAI')
+scope.write('CH1:SCALE 0.200')
+scope.write('CH1:POS 4.5')
 
 Qtest = []
 Itest = []
@@ -140,7 +158,7 @@ for j in range(0,23):
     Ihist=[]
     for N in range(0,25):
         scope.write('CH1:SCALE '+str(CH1scale[j]))
-        scope.write('TRIGGER:A:LEVEL:CH1 '+str(CH1scale[j]))
+        scope.write('TRIGGER:A:LEVEL:CH1 '+str(-CH1scale[j]/2.0))
         scope.write('ACQUIRE:STOPAFTER SEQUENCE')
         scope.write('ACQUIRE:STATE 1')
         scope.write('*WAI')
@@ -187,17 +205,16 @@ for j in range(0,23):
         BL = sum(Vq[0:50])/50.0
         Vq = np.subtract(Vq,BL)
         for i in range(0,len(Vq)):
-            if(Vq[i]<0): Vq[i] = 0
+            if(Vq[i]>0): Vq[i] = 0
         axq[0].clear()
-        
         axq[0].plot(Tq,Vq,label='Scope Data')
         axq[0].grid(color='lightgray',linestyle='-',linewidth=1)
         axq[0].set_xlabel("Time (nSec)")
-        axq[0].set_ylabel("Voltage") 
+        axq[0].set_ylabel("Voltage")
         axq[0].legend(loc='lower right')
-        Integral = sum(Vq)*xincr1*-1000000000
+        Integral = abs(sum(Vq)*xincr1*1000000000)
         Ihist.append(Integral)
-        Q = sum(Vq)*xincr1*-2e7
+        Q = abs(sum(Vq)*xincr1*2e7)
         Qhist.append(Q)
         Qavg = sum(Qhist)/len(Qhist)
         Iavg = sum(Ihist)/len(Ihist)
@@ -224,8 +241,8 @@ for j in range(0,23):
     plt.pause(0.1)
 
 HPwrite(':SOUR:VOLT 1.0\n')
-fq.savefig(fname+'testpulse.png')
 sleep(5)  
+fq.savefig(fname+'testpulse.png')
 
 # Part Two: HP8114A Pulser connected directly to the ICT Test Input with the 6dB attenuator.
 # The ICT Charge Output is now connected to the ACMI.  Measurement of the charge for
@@ -327,7 +344,7 @@ for j in range(0,23):
         axbm[0][1].set_ylabel("Test Pulse Charge (pC)")
         axbm[0][1].set_xlabel("Beam (A-B) (ADC Cnts)")
         axbm[0][1].legend(loc='lower right')
-
+        
         axbm[1][1].plot(BM[0:L],Qerr,'-o',markersize=6)
         axbm[1][1].grid(True)
         axbm[1][1].set_ylabel("Q(Test Pulse)-Q(Fit) (pC)")
@@ -384,7 +401,7 @@ for j in range(0,23):
 
 HPwrite(':SOUR:VOLT 0.0\n')
 sleep(1)  
+
 fbm.savefig(fname+'beam.png')
 fst.savefig(fname+'selftest.png')
-
 plt.show(block=True)

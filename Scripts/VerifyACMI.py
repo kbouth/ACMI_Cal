@@ -22,7 +22,7 @@ plt.ion()
 # )
 # sleep(0.5)  # Give the port time to settle
 
-tnet = tn.Telnet('10.0.142.150','1234')
+tnet = tn.Telnet('10.0.128.150','1234')
 
 def HPwrite(cmd):
     tnet.write((cmd + "\n").encode("ascii"))

@@ -54,7 +54,7 @@ else:
     sleep(0.5)
     
 rm = visa.ResourceManager()
-scope = rm.open_resource('TCPIP0::10.0.128.110::inst0::INSTR')
+scope = rm.open_resource('TCPIP0::10.0.142.110::inst0::INSTR')
 scoperesponse = scope.query('*IDN?')
 print(scoperesponse)
 serial_number = int(scoperesponse[18:24])
