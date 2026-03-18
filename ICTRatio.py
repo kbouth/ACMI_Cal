@@ -88,6 +88,11 @@ fr,axr = plt.subplots(1,2,figsize=(12,6))
 # The pulse width is fixed at 50.3nSec for all pulse amplitudes.
 ###############################################################################
 input("Connect cable from HP8114A Pulser to Oscilloscope Channel 1.  Hit <CR> when done.")
+year = input("\nEnter Year : ")
+if(int(year)<2024 or int(year)>2064):
+    print("Bad Year Input... Exiting.")
+    exit()
+
 fname = input("Enter file name for data (No Extension): ")
 
 CH1scale=[0.2,0.5,0.5,0.5,1,1,1,1,1,2,2,2,2,2,2,2,2,2,5] #in Volts/Division on Scope
@@ -96,7 +101,7 @@ Vp = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19] #in Volts for Pulse Ampli
 Qtest = []
 Itest = []
 Vtest= []
-f = open(fname+".raw","w")
+f = open("/ACMICal" + year + "/"+fname+".raw","w")
 f.write("Raw Data for Test Pulse Charge Measurement:\n")
 
 for j in range(0,19):
